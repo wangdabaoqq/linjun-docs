@@ -1,0 +1,19 @@
+{
+  "name": "linjun-docs",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "lint:md": "markdownlint-cli2 \"docs/**/*.md\""
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "markdownlint-cli2": "^0.20.0",
+    "vitepress": "^1.6.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

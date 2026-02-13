@@ -1,0 +1,66 @@
+name: Deploy VitePress to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: cloudflare-pages-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint Markdown
+        run: bun run lint:md
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build with VitePress
+        run: bun run docs:build
+
+      - name: Resolve Cloudflare branch
+        id: cf-branch
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "name=preview-pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy docs/.vitepress/dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }} --branch=${{ steps.cf-branch.outputs.name }}
